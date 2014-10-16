@@ -1,0 +1,221 @@
+package Asgn2;
+import java.util.ArrayList;
+
+/** WumpusWorld class that stands to represent a WumpusWorld as a grid
+  * of numbered squares 0->World-size.
+  * 
+  * @author Caleb Currie. 17-4-2013 
+  */
+public class WumpusWorld{
+   
+   /** Final ints storing directional values (NESW) */  
+   private final int NORTH=5,SOUTH=-5,EAST=1,WEST=-1;
+   
+   /** StateNode array holding all the worlds squares (possible states) */
+   private StateNode[] worldState;
+   
+   /** List that contains the trail of states from the root to closest Wumpus.
+     * This is used by printActions() to calculate movements.*/
+   private ArrayList<Integer> trail;
+   
+   /** Int array that stores the visit-state of each of the squares (0->Size)
+     * 0-unseen, 1-seen, 2-finished. WorldState number maps directly to index.*/
+   private int[] haveVisited;
+   
+   /** Holds the index of the square the agent is currently atop of (virtually) during
+     * the search */
+   private int curState;
+   
+   /** First creates the Wumpus World, followed by searching the Wumpus World for the 
+     * Wumpus closest to the LZ. The Square number (state number) containing said Wumpus
+     * is printed and the path taken is stored in the 'trail' list.
+    * 
+    * @param LZ landing zone of the Wumpii hunter. ie. Start state. 
+    */
+   public WumpusWorld(int LZ){
+      createWorld();
+      curState = LZ;   
+      trail = new ArrayList<Integer>();
+      
+      int result = wumpusSearch(curState);
+      System.out.println("The closest Wumpus is in square "+result);
+      for(int i=result; worldState[i].parent!=-1; i=worldState[i].parent)
+         trail.add(i);     
+      trail.add(0);
+   }
+   
+   /** resets the visit-state, parent value and depth values of all states(squares) 
+     * from start->Size.
+    * 
+    * @param start 
+    */
+   public void init(int start){
+      for(int i=start;i<25;i++){
+         haveVisited[i]=0;
+         worldState[i].parent=-1;
+         worldState[i].depth=-1;
+      }
+   } 
+   
+   /**
+    * 
+    */
+   public void createWorld(){
+      worldState = new StateNode[25]; 
+      haveVisited = new int[25];
+      for(int i=0;i<25;i++){
+         worldState[i] = new StateNode();
+      }
+      
+      worldState[4].setGoal();
+      worldState[17].setGoal();
+      worldState[20].setGoal();
+      worldState[24].setGoal();
+      
+      worldState[20].setWall(SOUTH);
+      worldState[15].setWall(NORTH);
+      
+      worldState[21].setWall(EAST);
+      worldState[22].setWall(WEST);
+      
+      worldState[16].setWall(EAST);
+      worldState[17].setWall(WEST);
+      
+      worldState[3].setWall(EAST);
+      worldState[4].setWall(WEST);
+      
+      worldState[13].setWall(SOUTH);
+      worldState[8].setWall(NORTH);
+      
+      worldState[14].setWall(SOUTH);
+      worldState[9].setWall(NORTH);
+   }
+   
+   /** Successor state function
+     * 
+     */
+   public void travel(int direction){
+      curState+=direction;
+   }
+   
+   /**
+    * 
+    */
+   public int wumpusSearch(int LZ){
+      int depth = 0,result;
+      System.out.println("entered");
+      
+      while(depth<25){
+         init(0);
+         System.out.println("Attempt: "+depth);
+         result = depthLimitedSearch(LZ,depth);
+         
+         if(result!=-1 && worldState[result].isGoal()){
+            return result;
+         }
+         depth++;
+      }
+      return -1;
+   }
+   
+   /**
+    * 
+    */
+   public int depthLimitedSearch(int start,int depth){
+      ArrayList<Integer> stack = new ArrayList<Integer>();    
+      stack.add((Integer)start);
+      haveVisited[start]=1;
+      worldState[start].depth=0;
+      
+      while(true){ 
+         if(stack.isEmpty())
+            return -1;
+         int j = stack.get(stack.size()-1);
+         stack.remove((Integer)j);       
+         travel(j-curState);
+         
+         if(stack.isEmpty() && curState!=start){
+            for(int i=2;i<25;i++){
+               if(i!=5){
+                  worldState[i].parent=-1;
+                  haveVisited[i]=0;
+                  worldState[i].depth=-1;
+               }
+            }
+         }
+         
+         if(haveVisited[curState]==1){
+            haveVisited[curState]=2;
+            if(worldState[curState].depth == -1)
+               worldState[curState].depth=worldState[worldState[curState].parent].depth+1;
+            
+            if(worldState[curState].isGoal())
+               return curState;
+            
+            if(worldState[curState].depth < depth){
+               for(int i=-1;i<2;i+=2){
+                  int leftRight = curState+i, upDown = curState+i*5;             
+                  
+                  if(upDown!= curState+worldState[curState].wall
+                        && upDown>=0 && upDown<=24 && haveVisited[upDown]==0){
+                     stack.add((Integer)upDown);
+                     haveVisited[upDown]=1;
+                     worldState[upDown].parent=curState;
+                  }
+                  if((curState%5 != 0 && i==-1) || (curState%5 != 4 && i==1) ){           
+                     if(leftRight != curState+worldState[curState].wall 
+                           && leftRight>=0 && leftRight<=24 && haveVisited[leftRight]==0){
+                        stack.add((Integer)leftRight);
+                        haveVisited[leftRight]=1;
+                        worldState[leftRight].parent=curState;
+                     }
+                  }            
+               }
+            }
+         }
+      }     
+   }
+   
+   /**
+    * 
+    */   
+   public void printActions(){
+      for(int i=trail.size()-1;i>0;i--){
+         int direction = trail.get(i-1) - trail.get(i);
+         if(direction == NORTH)
+            System.out.println("Go North");
+         else if(direction == EAST)
+            System.out.println("Go East");
+         else if(direction == SOUTH)
+            System.out.println("Go South");
+         else
+            System.out.println("Go West");
+      }
+   }
+   
+   /** Represents a square in the WumpusWorld.
+     * 
+     * @author Caleb Currie. 17-4-2013 
+     */
+   private class StateNode{
+      
+      int wall=0,depth=-1,parent=-1;
+      boolean goal=false;     
+      
+      public void setGoal(){
+         this.goal=true;    
+      }
+      
+      public void setWall(int wall){
+         this.wall=wall;
+      }
+      
+      public boolean isGoal(){
+         return goal;
+      }        
+   }
+   
+   
+}
+
+

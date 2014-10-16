@@ -1,0 +1,16 @@
+package Assignment2;
+
+
+public class WumpusApp{
+    
+    /** creates a new Wumpus world with start position ->square 0 and then prints
+      * the location of the closest Wumpus along with the steps required to reach it.
+      * 
+      * @param args Currently unused. Has possibility for expansion of application to
+      * allow the wumpus world to be dynamically created according to program input.
+      */
+    public static void main(String[] args){
+        WumpusDungeon wumpusWorld = new WumpusDungeon(0);
+        wumpusWorld.directions();
+    }
+}
